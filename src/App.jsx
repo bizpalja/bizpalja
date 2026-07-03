@@ -429,34 +429,44 @@ function getCompat(invElem, corpElem) {
   return {score,relation,labelTag,desc,advice,role,cGrade,cColor};
 }
 
-// ── DART DB ─────────────────────────────────────────────────
-const DART_DB = [
-  {corpCode:"00126380",name:"삼성전자",ticker:"005930",sector:"전자",founded:"1969-01-13",ceo:"한종희"},
-  {corpCode:"00164779",name:"SK하이닉스",ticker:"000660",sector:"반도체",founded:"1983-02-23",ceo:"곽노정"},
-  {corpCode:"00293886",name:"카카오",ticker:"035720",sector:"IT서비스",founded:"2010-03-01",ceo:"정신아"},
-  {corpCode:"00104713",name:"현대자동차",ticker:"005380",sector:"자동차",founded:"1967-12-29",ceo:"장재훈"},
-  {corpCode:"00401731",name:"네이버",ticker:"035420",sector:"인터넷",founded:"1999-06-02",ceo:"최수연"},
-  {corpCode:"00120182",name:"LG전자",ticker:"066570",sector:"전자",founded:"1958-10-01",ceo:"조주완"},
-  {corpCode:"00105380",name:"POSCO홀딩스",ticker:"005490",sector:"철강",founded:"1968-04-01",ceo:"장인화"},
-  {corpCode:"00159044",name:"셀트리온",ticker:"068270",sector:"바이오",founded:"2002-02-14",ceo:"서진석"},
-  {corpCode:"00108636",name:"KB금융",ticker:"105560",sector:"금융",founded:"2008-09-29",ceo:"양종희"},
-  {corpCode:"00107356",name:"신한금융지주",ticker:"055550",sector:"금융",founded:"2001-09-01",ceo:"진옥동"},
-  {corpCode:"00164742",name:"LG화학",ticker:"051910",sector:"화학",founded:"1947-01-05",ceo:"신학철"},
-  {corpCode:"00126340",name:"삼성SDI",ticker:"006400",sector:"배터리",founded:"1970-01-19",ceo:"최윤호"},
-  {corpCode:"00107709",name:"현대모비스",ticker:"012330",sector:"자동차부품",founded:"1977-05-25",ceo:"이규석"},
-  {corpCode:"00106641",name:"기아",ticker:"000270",sector:"자동차",founded:"1944-12-11",ceo:"송호성"},
-  {corpCode:"00159441",name:"크래프톤",ticker:"259960",sector:"게임",founded:"2007-03-27",ceo:"김창한"},
-  {corpCode:"00231567",name:"하이브",ticker:"352820",sector:"엔터",founded:"2005-02-11",ceo:"박지원"},
-  {corpCode:"00164756",name:"LG에너지솔루션",ticker:"373220",sector:"배터리",founded:"2020-12-01",ceo:"김동명"},
-  {corpCode:"00115419",name:"카카오페이",ticker:"377300",sector:"핀테크",founded:"2014-09-05",ceo:"신원근"},
-  {corpCode:"00184381",name:"삼성바이오로직스",ticker:"207940",sector:"바이오",founded:"2011-04-07",ceo:"존림"},
-  {corpCode:"00247797",name:"쿠팡",ticker:"CPNG",sector:"이커머스",founded:"2010-08-01",ceo:"강한승"},
-];
-function searchDart(q){
-  if(!q||q.length<1)return[];
-  const lq=q.trim().toLowerCase();
-  return DART_DB.filter(c=>c.name.toLowerCase().includes(lq)||c.ticker.toLowerCase().includes(lq)||c.sector.toLowerCase().includes(lq)).slice(0,6);
+// ── DART 전체 상장기업 목록 (public/corpList.json에서 로드) ──
+let _corpListCache = null;
+async function loadCorpList() {
+  if (_corpListCache) return _corpListCache;
+  const res = await fetch('/corpList.json');
+  const data = await res.json();
+  _corpListCache = data;
+  return data;
 }
+
+// 인기 기업 빠른 선택용 (고유번호만 있으면 되고, 상세정보는 클릭 시 API로 조회)
+const POPULAR_CORPS = [
+  {corpCode:"00126380",name:"삼성전자",ticker:"005930"},
+  {corpCode:"00164779",name:"SK하이닉스",ticker:"000660"},
+  {corpCode:"00293886",name:"카카오",ticker:"035720"},
+  {corpCode:"00104713",name:"현대자동차",ticker:"005380"},
+  {corpCode:"00401731",name:"네이버",ticker:"035420"},
+  {corpCode:"00120182",name:"LG전자",ticker:"066570"},
+  {corpCode:"00105380",name:"POSCO홀딩스",ticker:"005490"},
+  {corpCode:"00159044",name:"셀트리온",ticker:"068270"},
+];
+
+
+function searchDart(list, q) {
+  if (!q || q.length < 1) return [];
+  const lq = q.trim().toLowerCase();
+  return list
+    .filter(c => c.name.toLowerCase().includes(lq) || c.ticker.toLowerCase().includes(lq))
+    .slice(0, 8);
+}
+
+// 선택한 기업의 상세정보(설립일 등)를 백엔드(api/search.js)로 조회
+async function fetchCorpDetail(corpCode) {
+  const res = await fetch(`/api/search?corpCode=${corpCode}`);
+  if (!res.ok) throw new Error('조회 실패');
+  return res.json();
+}
+
 
 // ── 광고 컴포넌트 ────────────────────────────────────────────
 const ADS=[
@@ -568,37 +578,60 @@ function CorpSearch({onSelect,placeholder="기업명 또는 티커 검색"}){
   const [q,setQ]=useState("");
   const [results,setResults]=useState([]);
   const [focused,setFocused]=useState(false);
-  useEffect(()=>{setResults(q.length>=1?searchDart(q):[]);},[q]);
-  const pick=(c)=>{setQ(c.name);setResults([]);setFocused(false);onSelect(c);};
+  const [corpList,setCorpList]=useState([]);
+  const [picking,setPicking]=useState(false);
+
+  useEffect(()=>{ loadCorpList().then(setCorpList).catch(()=>{}); },[]);
+  useEffect(()=>{setResults(q.length>=1?searchDart(corpList,q):[]);},[q,corpList]);
+
+  const pick=async(c)=>{
+    setQ(c.name);setResults([]);setFocused(false);
+    setPicking(true);
+    try{
+      const detail = await fetchCorpDetail(c.corpCode);
+      onSelect({
+        corpCode: c.corpCode,
+        name: detail.name || c.name,
+        ticker: detail.ticker || c.ticker,
+        founded: detail.founded,
+        ceo: detail.ceo,
+        sector: "-",
+      });
+    }catch(e){
+      onSelect({ corpCode:c.corpCode, name:c.name, ticker:c.ticker, founded:null, ceo:"-", sector:"-" });
+    }
+    setPicking(false);
+  };
+
   return(
     <div style={{position:"relative"}}>
       <div style={{position:"relative"}}>
-        <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:16}}>🔍</span>
+        <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:16}}>{picking?"⏳":"🔍"}</span>
         <input style={{width:"100%",background:"#111827",border:`1px solid ${focused?"#c8963e":"#1e2740"}`,borderRadius:10,padding:"11px 14px 11px 38px",color:"#e2e8f0",fontSize:14,fontFamily:"inherit",boxSizing:"border-box",transition:"border-color 0.2s"}}
-          placeholder={placeholder} value={q}
+          placeholder={corpList.length? placeholder : "기업 목록 불러오는 중..."} value={q}
+          disabled={picking}
           onChange={e=>setQ(e.target.value)}
           onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),200)}/>
         {q&&<button onClick={()=>{setQ("");setResults([]);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#64748b",fontSize:18,cursor:"pointer"}}>×</button>}
       </div>
       {results.length>0&&focused&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#111827",border:"1px solid #1e2740",borderRadius:10,overflow:"hidden",zIndex:50,boxShadow:"0 8px 24px #00000088"}}>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#111827",border:"1px solid #1e2740",borderRadius:10,overflow:"hidden",zIndex:50,boxShadow:"0 8px 24px #00000088",maxHeight:320,overflowY:"auto"}}>
           {results.map((c,i)=>(
             <button key={i} onMouseDown={()=>pick(c)}
               style={{width:"100%",background:"none",border:"none",borderBottom:i<results.length-1?"1px solid #1e2740":"none",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-              <div style={{width:34,height:34,background:"#1e2740",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#64748b",flexShrink:0,fontWeight:700}}>{c.sector.slice(0,2)}</div>
+              <div style={{width:34,height:34,background:"#1e2740",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#64748b",flexShrink:0}}>🏢</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{c.name}</div>
-                <div style={{fontSize:11,color:"#64748b"}}>{c.ticker} · {c.sector}</div>
+                <div style={{fontSize:11,color:"#64748b"}}>{c.ticker}</div>
               </div>
-              <div style={{fontSize:11,color:"#4a5568",flexShrink:0}}>설립 {c.founded.slice(0,4)}</div>
             </button>
           ))}
           <div style={{padding:"5px 14px",background:"#0d1220",borderTop:"1px solid #1e2740"}}>
-            <div style={{fontSize:10,color:"#374151"}}>📡 DART 공시 데이터 기반</div>
+            <div style={{fontSize:10,color:"#374151"}}>📡 DART 전체 상장기업 {corpList.length}개</div>
           </div>
         </div>
       )}
-      {q.length>=1&&results.length===0&&focused&&(
+      {q.length>=1&&results.length===0&&focused&&corpList.length>0&&(
         <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#111827",border:"1px solid #1e2740",borderRadius:10,padding:14,textAlign:"center",zIndex:50}}>
           <div style={{fontSize:13,color:"#64748b"}}>검색 결과가 없습니다</div>
         </div>
@@ -668,6 +701,19 @@ export default function App(){
     },650);
   };
 
+  const pickPopular = async (c, target) => {
+    try{
+      const detail = await fetchCorpDetail(c.corpCode);
+      const full = { corpCode:c.corpCode, name:detail.name||c.name, ticker:detail.ticker||c.ticker, founded:detail.founded, ceo:detail.ceo, sector:"-" };
+      if(target==="corp"){ setCorp(full); setResult(null); }
+      else { setCCorp(full); }
+    }catch(e){
+      const fallback = { corpCode:c.corpCode, name:c.name, ticker:c.ticker, founded:null, ceo:"-", sector:"-" };
+      if(target==="corp"){ setCorp(fallback); setResult(null); }
+      else { setCCorp(fallback); }
+    }
+  };
+
   return(
     <div style={{background:"#080c14",minHeight:"100vh",color:"#e2e8f0",fontFamily:"'Noto Sans KR',sans-serif",maxWidth:430,margin:"0 auto"}}>
     <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.4)}`}</style>
@@ -726,10 +772,10 @@ export default function App(){
             <div style={{marginBottom:16}}>
               <div style={{fontSize:12,color:"#4a5568",marginBottom:8}}>🔥 인기 기업</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {DART_DB.slice(0,8).map(c=>(
+                {POPULAR_CORPS.map(c=>(
                   <button key={c.corpCode}
                     style={{background:corp?.corpCode===c.corpCode?"#1e2740":"#0d1220",border:`1px solid ${corp?.corpCode===c.corpCode?"#c8963e":"#1e2740"}`,borderRadius:20,padding:"5px 14px",fontSize:12,color:corp?.corpCode===c.corpCode?"#c8963e":"#94a3b8",cursor:"pointer",fontFamily:"inherit"}}
-                    onClick={()=>{setCorp(c);setResult(null);}}>
+                    onClick={()=>pickPopular(c,"corp")}>
                     {c.name}
                   </button>
                 ))}
@@ -840,10 +886,10 @@ export default function App(){
               <div style={{fontSize:13,color:"#c8963e",fontWeight:700,marginBottom:10}}>기업을 먼저 선택해주세요</div>
               <CorpSearch onSelect={c=>setCorp(c)}/>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}>
-                {DART_DB.slice(0,6).map(c=>(
+                {POPULAR_CORPS.slice(0,6).map(c=>(
                   <button key={c.corpCode}
                     style={{background:"#111827",border:"1px solid #1e2740",borderRadius:16,padding:"4px 12px",fontSize:11,color:"#94a3b8",cursor:"pointer",fontFamily:"inherit"}}
-                    onClick={()=>setCorp(c)}>{c.name}</button>
+                    onClick={()=>pickPopular(c,"corp")}>{c.name}</button>
                 ))}
               </div>
             </div>
