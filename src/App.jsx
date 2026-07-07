@@ -444,12 +444,12 @@ async function loadCorpList() {
 const POPULAR_CORPS = [
   {corpCode:"00126380",name:"삼성전자",ticker:"005930"},
   {corpCode:"00164779",name:"SK하이닉스",ticker:"000660"},
-  {corpCode:"00293886",name:"카카오",ticker:"035720"},
-  {corpCode:"00104713",name:"현대자동차",ticker:"005380"},
-  {corpCode:"00401731",name:"네이버",ticker:"035420"},
-  {corpCode:"00120182",name:"LG전자",ticker:"066570"},
-  {corpCode:"00105380",name:"POSCO홀딩스",ticker:"005490"},
-  {corpCode:"00159044",name:"셀트리온",ticker:"068270"},
+  {corpCode:"00258801",name:"카카오",ticker:"035720"},
+  {corpCode:"00164742",name:"현대자동차",ticker:"005380"},
+  {corpCode:"00266961",name:"네이버",ticker:"035420"},
+  {corpCode:"00401731",name:"LG전자",ticker:"066570"},
+  {corpCode:"00155319",name:"POSCO홀딩스",ticker:"005490"},
+  {corpCode:"00413046",name:"셀트리온",ticker:"068270"},
 ];
 
 
