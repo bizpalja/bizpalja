@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 // ── 천간 지지 상수 ──────────────────────────────────────────
 const STEMS   = ["갑(甲)","을(乙)","병(丙)","정(丁)","무(戊)","기(己)","경(庚)","신(辛)","임(壬)","계(癸)"];
@@ -1105,6 +1106,7 @@ export default function App(){
         <div style={{fontSize:10,color:"#374151",lineHeight:1.6}}>본 서비스는 재미 목적의 운세 서비스입니다.<br/>실제 투자 판단의 근거로 활용하지 마십시오.</div>
       </div>
     </div>
+    <Analytics />
     </div>
   );
 }
