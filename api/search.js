@@ -1,4 +1,4 @@
-javascript// api/search.js
+// api/search.js
 // corp_code(DART 고유번호)로 기업 상세정보(설립일 등)를 조회하는 함수
 
 export default async function handler(req, res) {
