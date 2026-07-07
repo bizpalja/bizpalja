@@ -872,7 +872,6 @@ export default function App(){
                   onClick={()=>{setCCorp(c);setTab("투자자궁합");}}>
                   💑 나와 {c.name}의 투자 궁합 보기 →
                 </button>
-                <div style={{fontSize:11,color:"#374151",textAlign:"center",lineHeight:1.6}}>본 서비스는 재미와 흥미 목적으로 제공됩니다.<br/>실제 투자 및 경영 판단에 활용하지 마십시오.</div>
               </div>
             );
           })()}
@@ -964,7 +963,6 @@ export default function App(){
               })()}
 
               <BannerAd/>
-              <div style={{fontSize:11,color:"#374151",textAlign:"center",lineHeight:1.6}}>본 운세는 재미 목적이며 실제 투자 판단 근거로 활용하지 마십시오.</div>
             </div>
           )}
         </div>
@@ -1073,7 +1071,6 @@ export default function App(){
                 <div style={{fontSize:14,color:"#60a5fa",fontWeight:700,marginBottom:6}}>☽ 투자 조언</div>
                 <div style={{fontSize:13,color:"#94a3b8",lineHeight:1.8}}>{cResult.compat.advice}</div>
               </div>
-              <div style={{fontSize:11,color:"#374151",textAlign:"center",lineHeight:1.6}}>본 분석은 재미 목적이며 실제 투자 판단 근거로 활용하지 마십시오.</div>
             </div>
           )}
         </div>
