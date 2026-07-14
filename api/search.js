@@ -32,6 +32,7 @@ export default async function handler(req, res) {
         : null,
       ceo: data.ceo_nm,
       address: data.adres,
+      industry: data.induty_code,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
